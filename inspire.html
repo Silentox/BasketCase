@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<!--Project Team standard: pixels to ems-->
+
+<head>
+    <title>BasketCase Inspire</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.0.13/css/all.css" integrity="sha384-DNOHZ68U8hZfKXOrtjWvjxusGo9WQnrNx2sqG0tfsghAvtVlRW3tvkXWZh58N9jp"
+        crossorigin="anonymous">
+    <link href="https://fonts.googleapis.com/css?family=Cinzel" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css?family=Song+Myung" rel="stylesheet">
+    <link rel="stylesheet" type="text/css" media="screen" href="assets/css/style.css" />
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+</head>
+
+<body>
+    <script src="https://code.jquery.com/jquery-3.3.1.js" integrity="sha256-2Kok7MbOyxpgUVvAk/HJ2jigOSYS2auK4Pfzbm7uH60=" crossorigin="anonymous"></script>
+    <script src="https://sdk.scdn.co/spotify-player.js"></script>
+    <script src="spotify.js"></script>
+
+    <script src="https://code.jquery.com/jquery-3.3.1.js" integrity="sha256-2Kok7MbOyxpgUVvAk/HJ2jigOSYS2auK4Pfzbm7uH60=" crossorigin="anonymous"></script>
+    <script src="https://sdk.scdn.co/spotify-player.js"></script>
+
+    <script>
+        const clientID = 'aec2ecae4514485db63205cfd62415cc';
+        let player, token;
+        var accountUrl = 'https://accounts.spotify.com/authorize?client_id=' + clientID + '&redirect_uri=http:%2F%2Fwww.touchcatdigital.ca&scope=user-read-private%20user-read-email%20user-read-playback-state%20user-modify-playback-state%20streaming%20user-read-birthdate%20user-read-currently-playing&response_type=token&state=123';
+        window.onSpotifyWebPlaybackSDKReady = () => {
+            window.addEventListener("message", receiveMessage, false);
+            var authWindow = window.open(accountUrl, '_blank');
+            if (authWindow) {
+                authWindow.focus();
+            }
+
+            function receiveMessage(event) {
+                console.log(event);
+                var msg = event.data;
+                if (typeof msg === 'string') {
+                    var parseArray = msg.split('&');
+                    token = parseArray[0].split('=')[1];
+                    authWindow.close();
+                    player = new Spotify.Player({
+                        name: 'Max Tunage',
+                        getOAuthToken: cb => { cb(token); }
+                    });
+
+
+                    // Error handling
+                    player.addListener('initialization_error', ({ message }) => { console.error(message); });
+                    player.addListener('authentication_error', ({ message }) => { console.error(message); });
+                    player.addListener('account_error', ({ message }) => { console.error(message); });
+                    player.addListener('playback_error', ({ message }) => { console.error(message); });
+
+                    // Playback status updates
+                    player.addListener('player_state_changed', state => { console.log(state); });
+
+                    // Ready
+                    player.addListener('ready', ({ device_id }) => {
+                        var req = $.ajax({
+                            url: "https://api.spotify.com/v1/me/player/play?device_id=" + device_id,
+                            method: 'PUT',
+                            dataType: 'json',
+                            data: JSON.stringify({
+                                "uris": ["spotify:track:0GNI8K3VATWBABQFAzBAYe", "spotify:track:5yVIlYEHZxQVLyInCdldoS", "spotify:track:6xM8oBy40nK1rOd8WmoOPx", "spotify:track:4z1O25cq9g2kuJemmUxc21", "spotify:track:2EiGECydkS2M8OCcRHQZhT", "spotify:track:3unsLiH5FXmaDWtT5Imolu"]
+                            }),
+                            headers: {
+                                "Authorization": 'Bearer ' + token,
+                                'Content-Type': 'application/json'
+                            }
+                        });
+                        req.done(function (msg) {
+                            let playerState;
+                            player.setVolume(0.9);
+
+                            console.log('PLAYING');
+                            $('#playTrack').on('click', function () {
+                                if (playerState === false) {
+                                    player.pause();
+                                    playerState = true;
+                                    $(".iPlay").text("play_circle_outline")
+                                }
+                                else {
+                                    player.resume();
+                                    playerState = false;
+                                    $(".iPlay").text("pause_circle_outline")
+                                }
+                            });
+
+                            $('#previousTrack').on('click', function () {
+                                player.previousTrack();
+                            });
+                            $('#nextTrack').on('click', function () {
+                                player.nextTrack();
+                            });
+
+                        });
+                        req.fail(function (jqXHR, textStatus) {
+                            switch (jqXHR.status) {
+                                case 403:
+                                    console.log('NEED PREMIUM ACCOUNT');
+                                    break;
+                                case 404:
+                                    console.log('NO DEVICE');
+                                    break;
+                                default:
+                                    break;
+                            }
+                        });
+                        console.log('Ready with Device ID', device_id);
+
+                    });
+
+                    // Not Ready
+                    player.addListener('not_ready', ({ device_id }) => {
+                        console.log('Device ID has gone offline', device_id);
+                    });
+
+                    // Connect to the player!
+                    player.connect();
+                }
+            };
+        };     
+    </script>
+    <nav class="navbar fixed-top navbar-light bg-light topNav">
+        <div id="toggler">
+            <i class="fas fa-bars pullChevron"></i>
+
+        </div>
+        <!-- <a class="navbar-brand" href="#">Fixed top</a> -->
+        <a class="logoName">BasketCase
+            <img src="./assets/images/basketcase.png" class="logoImage">
+        </a>
+        <div id="userAuth">
+            <a href="#" id="profile1" data-toggle="popover" data-placement="bottom" data-trigger="focus">
+                <div class="profile1">
+                    <i class="fas fa-user manIcon"></i>
+                </div>
+                <!-- <img src="#" id="profile" alt="profilephoto"> -->
+            </a>
+        </div>
+    </nav>
+    <!--left side navbar-->
+    <nav id="sidebar" class="toggled">
+        <!-- Sidebar Header -->
+        <div class="sidebar-header">
+            <!-- <h3>BasketCase</h3> -->
+            <!-- <i class="fas fa-shopping-basket"></i> -->
+            <button id="previousTrack" style="font-size:50px;background-color:transparent;border:transparent;outline:none">
+                <i class="material-icons iPrevious">skip_previous</i>
+            </button>
+            <button id="playTrack" style="font-size:50px;background-color:transparent;border:transparent;outline:none;">
+                <i class="material-icons iPlay">play_circle_outline</i>
+            </button>
+            <button id="nextTrack" style="font-size:50px;background-color:transparent;border:transparent;outline:none">
+                <i class="material-icons iNext">skip_next</i>
+            </button>
+
+        </div>
+        <!-- Sidebar Links -->
+        <ul class="menuItems">
+            <li>
+                <a href="index.html">
+                    <i class="fas fa-shopping-cart"></i> Grocery List</a>
+            </li>
+            <li>
+                <a href="recipe.html">
+                    <i class="fas fa-utensils"></i> Recipes</a>
+            </li>
+            <li>
+                <a href="#">
+                    <i class="fas fa-birthday-cake"></i> Events</a>
+            </li>
+        </ul>
+    </nav>
+
+
+    <!--content for user login, hidden but shows in popover if clicked-->
+    <div class="popoverContent hide">
+        <div class="firstRow">
+            <div class="nameOutter">
+                <p class="name"></p>
+                <p class="email"></p>
+            </div>
+            <!-- <img src="#" id="profileInside" alt="profilephoto"> -->
+        </div>
+
+        <div class="secondRow">
+            <button type="button" class="btn btn-secondary signOut">sign out</button>
+            <button type="button" class="btn btn-secondary signIn">sign in</button>
+        </div>
+    </div>
+
+
+    <!-- Page Content -->
+    <div class="main content">
+
+        <h2 class="inspiredTitle">Get Inspired</h2>
+        <div id="myCarousel" class="carousel slide" data-ride="carousel">
+            <!-- Indicators -->
+            <ol class="carousel-indicators carouselCircles">
+                <li data-target="#myCarousel" data-slide-to="0" class="active"></li>
+                <li data-target="#myCarousel" data-slide-to="1"></li>
+                <li data-target="#myCarousel" data-slide-to="2"></li>
+                <li data-target="#myCarousel" data-slide-to="3"></li>
+            </ol>
+
+            <!-- Wrapper for slides -->
+            <div class="carousel-inner mainCarousel" role="listbox">
+                <div class="item active">
+                    <img src="assets/images/sponge-basket-1194380_1920.jpg" class="imageCar" alt="Forage Feast">
+                    <div class="carousel-caption">
+                        <h3 class="imgMeta"></h3>
+                        <p>Powered by Pinterest</p>
+                    </div>
+                </div>
+
+                <div class="item">
+                    <img src="assets/images/fruit-3399834_1920.jpg" class="imageCar" alt="Fruit">
+                    <div class="carousel-caption">
+                        <h3 class="imgMeta"></h3>
+                        <p>Powered by Pinterest</p>
+                    </div>
+                </div>
+
+                <div class="item">
+                    <img src="assets/images/vietnam-3225767_1920.jpg" class="imageCar" alt="Travel">
+                    <div class="carousel-caption">
+                        <h3 class="imgMeta"></h3>
+                        <p>Powered by Pinterest</p>
+                    </div>
+                </div>
+                <!-- image -->
+                <div class="item">
+                    <img src="assets/images/wickerwork-1314017_1920.jpg" class="imageCar" alt="DIY">
+                    <div class="carousel-caption">
+                        <h3 class="imgMeta"></h3>
+                        <p>Powered by Pinterest</p>
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- Left and right controls -->
+            <a class="left carousel-control leftControl" href="#myCarousel" role="button" data-slide="prev">
+                <span class="glyphicon glyphicon-chevron-left" aria-hidden="true"></span>
+                <span class="sr-only">Previous</span>
+            </a>
+            <a class="right carousel-control rightControl" href="#myCarousel" role="button" data-slide="next">
+                <span class="glyphicon glyphicon-chevron-right" aria-hidden="true"></span>
+                <span class="sr-only">Next</span>
+            </a>
+        </div>
+    </div>
+    </div>
+    <br>
+    <!--footer-->
+    <!-- <footer class="container-fluid text-center">
+        <p>Spotify</p>
+    </footer> -->
+
+    <script src="https://code.jquery.com/jquery-3.3.1.js" integrity="sha256-2Kok7MbOyxpgUVvAk/HJ2jigOSYS2auK4Pfzbm7uH60=" crossorigin="anonymous"></script>
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8="
+        crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa"
+        crossorigin="anonymous"></script>
+    <script src="https://www.gstatic.com/firebasejs/5.0.4/firebase.js"></script>
+
+    <!-- <script src="./assets/javascript/inspire.js"></script> -->
+    <script src="./assets/javascript/app.js"></script>
+
+
+</body>
+
+</html>
